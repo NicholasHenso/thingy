@@ -1,243 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>3D FPS – Shotgun & SMG</title>
-  <style>
-    body { margin:0; overflow:hidden; background:#000; font-family:system-ui, sans-serif; }
-    #hud {
-      position:fixed; top:10px; left:10px; z-index:10;
-      color:#0f0; font-size:14px; text-shadow:0 0 4px #000;
-    }
-    #buttons {
-      position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
-      display:flex; gap:10px; z-index:10;
-    }
-    button {
-      padding:8px 14px; border:none; border-radius:6px;
-      background:#222; color:#0f0; font-weight:600;
-    }
-    button.active { background:#0f0; color:#000; }
-    #fireBtn {
-      position:fixed; bottom:10px; right:10px; z-index:10;
-      padding:14px 20px; border-radius:999px;
-      background:#f33; color:#fff; border:none; font-weight:700;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Web Game Framework</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 18px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid lime;
+            border-radius: 50%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        #weaponInfo {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: lime;
+            font-size: 16px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+            min-width: 200px;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-<div id="hud">
-  Gun: <span id="gunName">Shotgun</span><br>
-  Tap FIRE or screen to shoot • Drag to look
-</div>
-<div id="buttons">
-  <button id="shotgunBtn" class="active">Shotgun</button>
-  <button id="smgBtn">SMG</button>
-</div>
-<button id="fireBtn">FIRE</button>
+    <div id="ui">
+        <div>FPS: <span id="fps">60</span></div>
+        <div>Enemies: <span id="enemyCount">0</span></div>
+        <div>Health: <span id="health">100</span></div>
+    </div>
+    <div id="crosshair"></div>
+    <div id="weaponInfo">
+        <div>Weapon: <span id="weaponName">9MM</span></div>
+        <div>Ammo: <span id="ammo">30</span> / <span id="maxAmmo">30</span></div>
+        <div>Damage: <span id="damage">10</span></div>
+    </div>
+    <div id="instructions">
+        <strong>Controls:</strong><br>
+        WASD - Move<br>
+        Mouse - Look Around<br>
+        Click - Shoot<br>
+        1-4 - Switch Weapons<br>
+        R - Reload<br>
+        Space - Jump
+    </div>
 
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-<script>
-let scene, camera, renderer;
-let bullets = [];
-let targets = [];
-let gun = 'shotgun';
-let lastSmgShot = 0;
-
-const gunNameEl = document.getElementById('gunName');
-const shotgunBtn = document.getElementById('shotgunBtn');
-const smgBtn = document.getElementById('smgBtn');
-const fireBtn = document.getElementById('fireBtn');
-
-init();
-animate();
-
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111111);
-
-  camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-  camera.position.set(0, 2, 10);
-
-  renderer = new THREE.WebGLRenderer({ antialias:true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  // Lights
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x222222, 1.0);
-  scene.add(hemi);
-  const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-  dir.position.set(10, 20, 10);
-  scene.add(dir);
-
-  // Floor
-  const floorGeo = new THREE.PlaneGeometry(60, 60);
-  const floorMat = new THREE.MeshStandardMaterial({ color:0x202020 });
-  const floor = new THREE.Mesh(floorGeo, floorMat);
-  floor.rotation.x = -Math.PI / 2;
-  scene.add(floor);
-
-  // Simple walls
-  const wallMat = new THREE.MeshStandardMaterial({ color:0x303030 });
-  const wallGeo = new THREE.BoxGeometry(60, 10, 1);
-  const wall1 = new THREE.Mesh(wallGeo, wallMat);
-  wall1.position.set(0, 5, -30);
-  const wall2 = wall1.clone(); wall2.position.set(0, 5, 30);
-  const wall3 = new THREE.Mesh(new THREE.BoxGeometry(1, 10, 60), wallMat);
-  wall3.position.set(-30, 5, 0);
-  const wall4 = wall3.clone(); wall4.position.set(30, 5, 0);
-  scene.add(wall1, wall2, wall3, wall4);
-
-  // Targets (red cubes)
-  const targetGeo = new THREE.BoxGeometry(2, 2, 2);
-  const targetMat = new THREE.MeshStandardMaterial({ color:0xff3333 });
-  for (let i = 0; i < 10; i++) {
-    const t = new THREE.Mesh(targetGeo, targetMat.clone());
-    t.position.set(
-      (Math.random() - 0.5) * 40,
-      1 + Math.random() * 3,
-      (Math.random() - 0.5) * 40
-    );
-    scene.add(t);
-    targets.push(t);
-  }
-
-  // Look control: drag to rotate camera
-  let isDragging = false;
-  let lastX = 0, lastY = 0;
-
-  function startDrag(e) {
-    isDragging = true;
-    lastX = e.touches ? e.touches[0].clientX : e.clientX;
-    lastY = e.touches ? e.touches[0].clientY : e.clientY;
-  }
-  function moveDrag(e) {
-    if (!isDragging) return;
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    const y = e.touches ? e.touches[0].clientY : e.clientY;
-    const dx = x - lastX;
-    const dy = y - lastY;
-    lastX = x; lastY = y;
-
-    const rotSpeed = 0.003;
-    camera.rotation.y -= dx * rotSpeed;
-    camera.rotation.x -= dy * rotSpeed;
-    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-  }
-  function endDrag() { isDragging = false; }
-
-  renderer.domElement.addEventListener('mousedown', startDrag);
-  renderer.domElement.addEventListener('mousemove', moveDrag);
-  window.addEventListener('mouseup', endDrag);
-
-  renderer.domElement.addEventListener('touchstart', startDrag, { passive:true });
-  renderer.domElement.addEventListener('touchmove', moveDrag, { passive:true });
-  window.addEventListener('touchend', endDrag);
-
-  // Shooting
-  renderer.domElement.addEventListener('click', shoot);
-  fireBtn.addEventListener('click', shoot);
-
-  // Weapon buttons
-  shotgunBtn.onclick = () => {
-    gun = 'shotgun';
-    gunNameEl.textContent = 'Shotgun';
-    shotgunBtn.classList.add('active');
-    smgBtn.classList.remove('active');
-  };
-  smgBtn.onclick = () => {
-    gun = 'smg';
-    gunNameEl.textContent = 'SMG';
-    smgBtn.classList.add('active');
-    shotgunBtn.classList.remove('active');
-  };
-
-  window.addEventListener('resize', onResize);
-}
-
-function shoot() {
-  const now = performance.now();
-
-  if (gun === 'smg') {
-    // simple fire rate limit
-    if (now - lastSmgShot < 80) return;
-    lastSmgShot = now;
-  }
-
-  const origin = camera.position.clone();
-  const dir = new THREE.Vector3(0, 0, -1);
-  dir.applyQuaternion(camera.quaternion).normalize();
-
-  if (gun === 'shotgun') {
-    // 6 pellets with slight spread
-    for (let i = 0; i < 6; i++) {
-      const spread = 0.08;
-      const d = dir.clone();
-      d.x += (Math.random() - 0.5) * spread;
-      d.y += (Math.random() - 0.5) * spread;
-      d.z += (Math.random() - 0.5) * spread;
-      d.normalize();
-      spawnBullet(origin, d, 0.6);
-    }
-  } else {
-    // single fast bullet
-    spawnBullet(origin, dir, 1.2);
-  }
-}
-
-function spawnBullet(origin, dir, speed) {
-  const geo = new THREE.SphereGeometry(0.15, 8, 8);
-  const mat = new THREE.MeshStandardMaterial({ color:0xffff00, emissive:0xffaa00 });
-  const b = new THREE.Mesh(geo, mat);
-  b.position.copy(origin);
-  b.userData = { dir:dir.clone(), speed, life:200 };
-  scene.add(b);
-  bullets.push(b);
-}
-
-function animate() {
-  requestAnimationFrame(animate);
-
-  // Move bullets
-  for (let i = bullets.length - 1; i >= 0; i--) {
-    const b = bullets[i];
-    const d = b.userData.dir;
-    const s = b.userData.speed;
-    b.position.addScaledVector(d, s);
-    b.userData.life--;
-    if (b.userData.life <= 0) {
-      scene.remove(b);
-      bullets.splice(i, 1);
-      continue;
-    }
-    // collision with targets
-    for (let j = targets.length - 1; j >= 0; j--) {
-      const t = targets[j];
-      if (!t) continue;
-      const dist = b.position.distanceTo(t.position);
-      if (dist < 1.2) {
-        scene.remove(t);
-        targets.splice(j, 1);
-        scene.remove(b);
-        bullets.splice(i, 1);
-        break;
-      }
-    }
-  }
-
-  renderer.render(scene, camera);
-}
-
-function onResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
-</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
