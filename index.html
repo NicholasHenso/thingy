@@ -9,6 +9,7 @@
             margin: 0;
             overflow: hidden;
             font-family: Arial, sans-serif;
+            touch-action: none;
         }
         canvas {
             display: block;
@@ -57,6 +58,134 @@
             padding: 15px;
             border-radius: 5px;
         }
+
+        /* Touch Controls */
+        #touchControls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 20;
+        }
+
+        .touchButton {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 200, 0, 0.6);
+            border: 2px solid lime;
+            border-radius: 10px;
+            color: lime;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .touchButton:active {
+            background: rgba(0, 255, 0, 0.9);
+            transform: scale(0.95);
+        }
+
+        #joystickContainer {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid lime;
+            border-radius: 50%;
+            z-index: 20;
+        }
+
+        #joystickKnob {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: lime;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.7;
+        }
+
+        #shootButton {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 0, 0, 0.6);
+            border: 3px solid red;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            z-index: 20;
+            touch-action: manipulation;
+        }
+
+        #shootButton:active {
+            background: rgba(255, 0, 0, 0.9);
+            transform: scale(0.95);
+        }
+
+        #weaponSwitcher {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+        }
+
+        .weaponButton {
+            width: 50px;
+            height: 50px;
+            background: rgba(100, 100, 255, 0.6);
+            border: 2px solid lightblue;
+            border-radius: 5px;
+            color: lightblue;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .weaponButton:active {
+            background: rgba(100, 100, 255, 0.9);
+        }
+
+        .weaponButton.active {
+            background: rgba(255, 200, 0, 0.8);
+            border-color: orange;
+            color: orange;
+        }
+
+        @media (min-width: 768px) {
+            #touchControls,
+            #joystickContainer,
+            #shootButton,
+            #weaponSwitcher {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -79,6 +208,25 @@
         1-4 - Switch Weapons<br>
         R - Reload<br>
         Space - Jump
+    </div>
+
+    <!-- Touch Controls (Mobile) -->
+    <div id="joystickContainer">
+        <div id="joystickKnob"></div>
+    </div>
+
+    <div id="shootButton">SHOOT</div>
+
+    <div id="weaponSwitcher">
+        <div class="weaponButton active" data-weapon="0">1</div>
+        <div class="weaponButton" data-weapon="1">2</div>
+        <div class="weaponButton" data-weapon="2">3</div>
+        <div class="weaponButton" data-weapon="3">4</div>
+    </div>
+
+    <div id="touchControls">
+        <div class="touchButton" id="jumpButton">JUMP</div>
+        <div class="touchButton" id="reloadButton">RELOAD</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
